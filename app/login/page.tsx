@@ -26,6 +26,8 @@ export default function LoginPage() {
       return
     }
 
+    // Removed password length validation - now accepts any password
+
     try {
       const { data: admin, error } = await supabase
         .from('admins')
@@ -311,7 +313,6 @@ export default function LoginPage() {
                 required
                 placeholder="Enter your password"
                 disabled={loading}
-                minLength={6}
                 style={{
                   ...styles.passwordInput,
                   ...(loading ? { opacity: 0.5, cursor: 'not-allowed' } : {})
