@@ -4,11 +4,28 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase, Person, PersonFormData } from '@/lib/supabase'
 
+const MONTHS = [
+  { value: 'all', label: 'All Months' },
+  { value: 1, label: 'January' },
+  { value: 2, label: 'February' },
+  { value: 3, label: 'March' },
+  { value: 4, label: 'April' },
+  { value: 5, label: 'May' },
+  { value: 6, label: 'June' },
+  { value: 7, label: 'July' },
+  { value: 8, label: 'August' },
+  { value: 9, label: 'September' },
+  { value: 10, label: 'October' },
+  { value: 11, label: 'November' },
+  { value: 12, label: 'December' }
+]
+
 export default function Home() {
   const [people, setPeople] = useState<Person[]>([])
   const [filteredPeople, setFilteredPeople] = useState<Person[]>([])
   const [loading, setLoading] = useState<boolean>(true)
   const [searchTerm, setSearchTerm] = useState<string>('')
+  const [monthFilter, setMonthFilter] = useState<number | 'all'>('all')
   const [message, setMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null)
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false)
   const [editingId, setEditingId] = useState<number | null>(null)
@@ -41,7 +58,7 @@ export default function Home() {
 
   useEffect(() => {
     filterPeople()
-  }, [searchTerm, people])
+  }, [searchTerm, people, monthFilter])
 
   async function loadPeople(): Promise<void> {
     try {
@@ -62,15 +79,19 @@ export default function Home() {
   }
 
   function filterPeople(): void {
-    if (!searchTerm.trim()) {
-      setFilteredPeople(people)
-      return
+    let filtered = people
+
+    if (searchTerm.trim()) {
+      filtered = filtered.filter(person =>
+        person.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (person.department && person.department.toLowerCase().includes(searchTerm.toLowerCase()))
+      )
     }
 
-    const filtered = people.filter(person => 
-      person.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (person.department && person.department.toLowerCase().includes(searchTerm.toLowerCase()))
-    )
+    if (monthFilter !== 'all') {
+      filtered = filtered.filter(person => person.dob_month_num === monthFilter)
+    }
+
     setFilteredPeople(filtered)
   }
 
@@ -208,22 +229,23 @@ export default function Home() {
     }
   }
 
+  // ---------- WHITE THEME STYLES ----------
   const styles = {
     container: {
       maxWidth: '1200px',
       margin: '0 auto',
-      padding: '20px',
+      padding: '30px 20px',
       fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif',
       minHeight: '100vh',
-      background: '#000000',
-      color: '#ffffff',
+      background: '#f8f9fc',
+      color: '#1a1a2e',
     },
     header: {
       display: 'flex',
       justifyContent: 'space-between',
       alignItems: 'center',
       marginBottom: '30px',
-      paddingTop: '20px',
+      paddingTop: '10px',
       flexWrap: 'wrap' as const,
       gap: '15px',
     },
@@ -232,84 +254,99 @@ export default function Home() {
     },
     title: {
       fontSize: '2.5rem',
-      color: '#ffffff',
-      marginBottom: '5px',
+      fontWeight: 700,
+      color: '#1a1a2e',
+      marginBottom: '4px',
+      letterSpacing: '-0.5px',
     },
     subtitle: {
-      color: '#888',
+      color: '#6c757d',
       fontSize: '1rem',
     },
     userInfo: {
       display: 'flex',
       alignItems: 'center',
       gap: '12px',
+      flexWrap: 'wrap' as const,
     },
     userEmail: {
-      color: '#aaa',
+      color: '#495057',
       fontSize: '14px',
+      fontWeight: 500,
     },
     userRole: {
       background: '#4a6cf7',
       padding: '4px 12px',
-      borderRadius: '12px',
+      borderRadius: '20px',
       fontSize: '12px',
       color: 'white',
+      fontWeight: 600,
     },
     logoutButton: {
-      padding: '8px 16px',
+      padding: '8px 18px',
       background: '#dc3545',
       color: 'white',
       border: 'none',
-      borderRadius: '6px',
+      borderRadius: '8px',
       fontSize: '13px',
+      fontWeight: 500,
       cursor: 'pointer',
-      transition: 'all 0.2s',
+      transition: 'all 0.2s ease',
+      boxShadow: '0 2px 6px rgba(220, 53, 69, 0.2)',
     },
     message: {
-      padding: '12px 16px',
-      borderRadius: '8px',
-      marginBottom: '20px',
+      padding: '12px 18px',
+      borderRadius: '10px',
+      marginBottom: '24px',
       fontSize: '14px',
+      fontWeight: 500,
+      boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
     },
     messageSuccess: {
-      background: '#1a3a1a',
-      color: '#8fdf8f',
-      border: '1px solid #2a5a2a',
+      background: '#d4edda',
+      color: '#155724',
+      border: '1px solid #c3e6cb',
     },
     messageError: {
-      background: '#3a1a1a',
-      color: '#df8f8f',
-      border: '1px solid #5a2a2a',
+      background: '#f8d7da',
+      color: '#721c24',
+      border: '1px solid #f5c6cb',
     },
     statsBar: {
       display: 'grid',
-      gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))',
-      gap: '15px',
-      marginBottom: '25px',
+      gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
+      gap: '20px',
+      marginBottom: '30px',
     },
     statItem: {
-      background: '#1a1a1a',
-      padding: '15px',
-      borderRadius: '10px',
+      background: '#ffffff',
+      padding: '18px 20px',
+      borderRadius: '14px',
       textAlign: 'center' as const,
-      border: '1px solid #333',
+      boxShadow: '0 4px 12px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0,0,0,0.05)',
+      transition: 'all 0.25s ease',
+      border: '1px solid #e9ecef',
+      cursor: 'default',
     },
     statNumber: {
       display: 'block',
-      fontSize: '28px',
+      fontSize: '32px',
       fontWeight: 700,
-      color: '#ffffff',
+      color: '#1a1a2e',
+      lineHeight: 1.2,
     },
     statLabel: {
-      fontSize: '13px',
-      color: '#888',
+      fontSize: '14px',
+      color: '#6c757d',
       marginTop: '4px',
+      fontWeight: 500,
     },
     toolbar: {
       display: 'flex',
       gap: '15px',
-      marginBottom: '25px',
+      marginBottom: '28px',
       flexWrap: 'wrap' as const,
+      alignItems: 'center',
     },
     searchWrapper: {
       flex: 1,
@@ -318,43 +355,64 @@ export default function Home() {
     },
     searchInput: {
       width: '100%',
-      padding: '12px 40px 12px 16px',
-      border: '2px solid #333',
-      borderRadius: '8px',
+      padding: '12px 40px 12px 18px',
+      border: '2px solid #e9ecef',
+      borderRadius: '12px',
       fontSize: '15px',
-      background: '#1a1a1a',
-      color: '#ffffff',
+      background: '#ffffff',
+      color: '#1a1a2e',
+      transition: 'all 0.2s ease',
       boxSizing: 'border-box' as const,
+      boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
     },
     clearSearch: {
       position: 'absolute' as const,
-      right: '10px',
+      right: '12px',
       top: '50%',
       transform: 'translateY(-50%)',
       background: 'none',
       border: 'none',
-      color: '#666',
+      color: '#adb5bd',
       cursor: 'pointer',
       fontSize: '18px',
       padding: '4px 8px',
+      transition: 'color 0.2s',
+    },
+    filterWrapper: {
+      minWidth: '160px',
+    },
+    filterSelect: {
+      width: '100%',
+      padding: '12px 16px',
+      border: '2px solid #e9ecef',
+      borderRadius: '12px',
+      fontSize: '15px',
+      background: '#ffffff',
+      color: '#1a1a2e',
+      cursor: 'pointer',
+      outline: 'none',
+      transition: 'all 0.2s ease',
+      boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
     },
     addButton: {
-      padding: '12px 24px',
+      padding: '12px 28px',
       background: '#4a6cf7',
       color: 'white',
       border: 'none',
-      borderRadius: '8px',
+      borderRadius: '12px',
       fontSize: '15px',
-      fontWeight: 500,
+      fontWeight: 600,
       cursor: 'pointer',
-      transition: 'all 0.2s',
+      transition: 'all 0.25s ease',
       whiteSpace: 'nowrap' as const,
+      boxShadow: '0 4px 12px rgba(74, 108, 247, 0.25)',
     },
     tableContainer: {
-      background: '#0d0d0d',
-      borderRadius: '12px',
+      background: '#ffffff',
+      borderRadius: '16px',
       overflow: 'hidden',
-      border: '1px solid #1a1a1a',
+      boxShadow: '0 6px 20px rgba(0, 0, 0, 0.04), 0 1px 3px rgba(0,0,0,0.03)',
+      border: '1px solid #e9ecef',
       overflowX: 'auto' as const,
     },
     table: {
@@ -362,68 +420,74 @@ export default function Home() {
       borderCollapse: 'collapse' as const,
     },
     th: {
-      background: '#1a1a1a',
-      color: '#aaa',
+      background: '#f8f9fc',
+      color: '#495057',
       fontWeight: 600,
       fontSize: '13px',
       textTransform: 'uppercase' as const,
-      letterSpacing: '0.3px',
-      padding: '14px 16px',
+      letterSpacing: '0.5px',
+      padding: '16px 20px',
       textAlign: 'left' as const,
-      borderBottom: '2px solid #2a2a2a',
+      borderBottom: '2px solid #e9ecef',
     },
     td: {
-      padding: '14px 16px',
-      borderBottom: '1px solid #1a1a1a',
-      color: '#e0e0e0',
+      padding: '16px 20px',
+      borderBottom: '1px solid #f1f3f5',
+      color: '#212529',
+      transition: 'background 0.15s ease',
     },
     nameCell: {
       fontWeight: 600,
-      color: '#ffffff',
+      color: '#1a1a2e',
     },
     birthdayBadge: {
       display: 'inline-block',
-      padding: '4px 12px',
+      padding: '6px 16px',
       background: 'linear-gradient(135deg, #ff6b6b, #ee5a24)',
       color: 'white',
-      borderRadius: '20px',
+      borderRadius: '30px',
       fontSize: '13px',
-      fontWeight: 500,
+      fontWeight: 600,
+      boxShadow: '0 2px 8px rgba(238, 90, 36, 0.25)',
     },
     actions: {
       textAlign: 'center' as const,
     },
     editButton: {
-      padding: '6px 14px',
+      padding: '6px 16px',
       background: '#4a6cf7',
       color: 'white',
       border: 'none',
-      borderRadius: '6px',
+      borderRadius: '8px',
       fontSize: '13px',
+      fontWeight: 500,
       cursor: 'pointer',
       marginRight: '6px',
-      transition: 'all 0.2s',
+      transition: 'all 0.2s ease',
+      boxShadow: '0 2px 6px rgba(74, 108, 247, 0.15)',
     },
     deleteButton: {
-      padding: '6px 14px',
+      padding: '6px 16px',
       background: '#dc3545',
       color: 'white',
       border: 'none',
-      borderRadius: '6px',
+      borderRadius: '8px',
       fontSize: '13px',
+      fontWeight: 500,
       cursor: 'pointer',
-      transition: 'all 0.2s',
+      transition: 'all 0.2s ease',
+      boxShadow: '0 2px 6px rgba(220, 53, 69, 0.15)',
     },
     loading: {
       textAlign: 'center' as const,
       padding: '60px 20px',
-      color: '#666',
+      color: '#6c757d',
     },
     spinner: {
       width: '40px',
       height: '40px',
       margin: '0 auto 15px',
-      border: '3px solid #2a2a2a',
+      border: '4px solid #e9ecef',
       borderTopColor: '#4a6cf7',
       borderRadius: '50%',
       animation: 'spin 0.8s linear infinite',
@@ -437,11 +501,13 @@ export default function Home() {
       marginBottom: '15px',
     },
     emptyTitle: {
-      color: '#ffffff',
+      color: '#1a1a2e',
       marginBottom: '8px',
+      fontSize: '1.5rem',
+      fontWeight: 600,
     },
     emptyText: {
-      color: '#888',
+      color: '#6c757d',
       marginBottom: '20px',
     },
     modalOverlay: {
@@ -450,8 +516,8 @@ export default function Home() {
       left: 0,
       right: 0,
       bottom: 0,
-      background: 'rgba(0, 0, 0, 0.8)',
-      backdropFilter: 'blur(4px)',
+      background: 'rgba(0, 0, 0, 0.5)',
+      backdropFilter: 'blur(6px)',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
@@ -459,14 +525,15 @@ export default function Home() {
       padding: '20px',
     },
     modal: {
-      background: '#1a1a1a',
-      borderRadius: '16px',
+      background: '#ffffff',
+      borderRadius: '20px',
       maxWidth: '500px',
       width: '100%',
       maxHeight: '90vh',
       overflowY: 'auto' as const,
-      padding: '28px',
-      border: '1px solid #333',
+      padding: '32px',
+      boxShadow: '0 20px 60px rgba(0, 0, 0, 0.15)',
+      animation: 'fadeIn 0.25s ease',
     },
     modalHeader: {
       display: 'flex',
@@ -475,35 +542,38 @@ export default function Home() {
       marginBottom: '24px',
     },
     modalTitle: {
-      fontSize: '22px',
-      color: '#ffffff',
+      fontSize: '24px',
+      color: '#1a1a2e',
+      fontWeight: 700,
     },
     modalClose: {
       background: 'none',
       border: 'none',
       fontSize: '24px',
-      color: '#666',
+      color: '#adb5bd',
       cursor: 'pointer',
       padding: '4px 8px',
+      transition: 'color 0.2s',
     },
     formGroup: {
-      marginBottom: '18px',
+      marginBottom: '20px',
     },
     formLabel: {
       display: 'block',
       fontSize: '14px',
-      fontWeight: 500,
-      color: '#aaa',
-      marginBottom: '5px',
+      fontWeight: 600,
+      color: '#495057',
+      marginBottom: '6px',
     },
     formInput: {
       width: '100%',
-      padding: '10px 14px',
-      border: '2px solid #333',
-      borderRadius: '8px',
+      padding: '12px 16px',
+      border: '2px solid #e9ecef',
+      borderRadius: '10px',
       fontSize: '15px',
-      background: '#0d0d0d',
-      color: '#ffffff',
+      background: '#ffffff',
+      color: '#1a1a2e',
+      transition: 'all 0.2s ease',
       boxSizing: 'border-box' as const,
     },
     formRow: {
@@ -515,28 +585,35 @@ export default function Home() {
       display: 'flex',
       gap: '10px',
       justifyContent: 'flex-end',
-      marginTop: '24px',
+      marginTop: '28px',
     },
     cancelButton: {
       padding: '10px 24px',
-      background: '#333',
-      color: '#aaa',
+      background: '#f1f3f5',
+      color: '#495057',
       border: 'none',
-      borderRadius: '8px',
-      fontSize: '15px',
-      cursor: 'pointer',
-    },
-    saveButton: {
-      padding: '10px 24px',
-      background: '#4a6cf7',
-      color: 'white',
-      border: 'none',
-      borderRadius: '8px',
+      borderRadius: '10px',
       fontSize: '15px',
       fontWeight: 500,
       cursor: 'pointer',
+      transition: 'all 0.2s ease',
+    },
+    saveButton: {
+      padding: '10px 28px',
+      background: '#4a6cf7',
+      color: 'white',
+      border: 'none',
+      borderRadius: '10px',
+      fontSize: '15px',
+      fontWeight: 600,
+      cursor: 'pointer',
+      transition: 'all 0.2s ease',
+      boxShadow: '0 4px 12px rgba(74, 108, 247, 0.25)',
     },
   }
+
+  // ----- HOVER / FOCUS STYLES (applied via inline events and global CSS) -----
+  // We'll add a <style> block at the end for additional hover effects
 
   if (!admin) {
     return (
@@ -560,8 +637,16 @@ export default function Home() {
           <button 
             style={styles.logoutButton}
             onClick={handleLogout}
-            onMouseEnter={(e) => e.currentTarget.style.background = '#c82333'}
-            onMouseLeave={(e) => e.currentTarget.style.background = '#dc3545'}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = '#c82333'
+              e.currentTarget.style.transform = 'translateY(-2px)'
+              e.currentTarget.style.boxShadow = '0 6px 14px rgba(220, 53, 69, 0.35)'
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = '#dc3545'
+              e.currentTarget.style.transform = 'translateY(0)'
+              e.currentTarget.style.boxShadow = '0 2px 6px rgba(220, 53, 69, 0.2)'
+            }}
           >
             Logout
           </button>
@@ -578,29 +663,36 @@ export default function Home() {
       )}
 
       <div style={styles.statsBar}>
-        <div style={styles.statItem}>
-          <span style={styles.statNumber}>{people.length}</span>
-          <span style={styles.statLabel}>Total People</span>
-        </div>
-        <div style={styles.statItem}>
-          <span style={styles.statNumber}>
-            {people.filter(p => {
-              const today = new Date()
-              const currentMonth = today.getMonth() + 1
-              const currentDay = today.getDate()
-              return p.dob_month_num && p.dob_day && 
-                     (p.dob_month_num > currentMonth || 
-                      (p.dob_month_num === currentMonth && p.dob_day >= currentDay))
-            }).length}
-          </span>
-          <span style={styles.statLabel}>Upcoming Birthdays</span>
-        </div>
-        <div style={styles.statItem}>
-          <span style={styles.statNumber}>
-            {people.filter(p => p.department).length}
-          </span>
-          <span style={styles.statLabel}>With Department</span>
-        </div>
+        {[
+          { label: 'Total People', value: people.length },
+          { label: 'Upcoming Birthdays', value: people.filter(p => {
+            const today = new Date()
+            const currentMonth = today.getMonth() + 1
+            const currentDay = today.getDate()
+            return p.dob_month_num && p.dob_day && 
+                   (p.dob_month_num > currentMonth || 
+                    (p.dob_month_num === currentMonth && p.dob_day >= currentDay))
+          }).length },
+          { label: 'With Department', value: people.filter(p => p.department).length }
+        ].map((stat, idx) => (
+          <div 
+            key={idx} 
+            style={styles.statItem}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'translateY(-4px)'
+              e.currentTarget.style.boxShadow = '0 12px 28px rgba(0, 0, 0, 0.08)'
+              e.currentTarget.style.borderColor = '#4a6cf7'
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'translateY(0)'
+              e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0,0,0,0.05)'
+              e.currentTarget.style.borderColor = '#e9ecef'
+            }}
+          >
+            <span style={styles.statNumber}>{stat.value}</span>
+            <span style={styles.statLabel}>{stat.label}</span>
+          </div>
+        ))}
       </div>
 
       <div style={styles.toolbar}>
@@ -611,30 +703,61 @@ export default function Home() {
             placeholder="🔍 Search by name or department..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            onFocus={(e) => e.target.style.borderColor = '#4a6cf7'}
-            onBlur={(e) => e.target.style.borderColor = '#333'}
+            onFocus={(e) => {
+              e.target.style.borderColor = '#4a6cf7'
+              e.target.style.boxShadow = '0 0 0 4px rgba(74, 108, 247, 0.1)'
+            }}
+            onBlur={(e) => {
+              e.target.style.borderColor = '#e9ecef'
+              e.target.style.boxShadow = '0 1px 3px rgba(0,0,0,0.03)'
+            }}
           />
           {searchTerm && (
             <button 
               style={styles.clearSearch}
               onClick={() => setSearchTerm('')}
+              onMouseEnter={(e) => e.currentTarget.style.color = '#495057'}
+              onMouseLeave={(e) => e.currentTarget.style.color = '#adb5bd'}
             >
               ✕
             </button>
           )}
         </div>
+
+        <div style={styles.filterWrapper}>
+          <select
+            style={styles.filterSelect}
+            value={monthFilter}
+            onChange={(e) => setMonthFilter(e.target.value === 'all' ? 'all' : Number(e.target.value))}
+            onFocus={(e) => {
+              e.target.style.borderColor = '#4a6cf7'
+              e.target.style.boxShadow = '0 0 0 4px rgba(74, 108, 247, 0.1)'
+            }}
+            onBlur={(e) => {
+              e.target.style.borderColor = '#e9ecef'
+              e.target.style.boxShadow = '0 1px 3px rgba(0,0,0,0.03)'
+            }}
+          >
+            {MONTHS.map(({ value, label }) => (
+              <option key={value} value={value}>
+                {label}
+              </option>
+            ))}
+          </select>
+        </div>
+
         <button 
           style={styles.addButton}
           onClick={openAddModal}
           onMouseEnter={(e) => {
             e.currentTarget.style.background = '#3a5cd5'
-            e.currentTarget.style.transform = 'translateY(-1px)'
-            e.currentTarget.style.boxShadow = '0 4px 12px rgba(74, 108, 247, 0.3)'
+            e.currentTarget.style.transform = 'translateY(-3px)'
+            e.currentTarget.style.boxShadow = '0 8px 20px rgba(74, 108, 247, 0.35)'
           }}
           onMouseLeave={(e) => {
             e.currentTarget.style.background = '#4a6cf7'
             e.currentTarget.style.transform = 'translateY(0)'
-            e.currentTarget.style.boxShadow = 'none'
+            e.currentTarget.style.boxShadow = '0 4px 12px rgba(74, 108, 247, 0.25)'
           }}
         >
           + Add Person
@@ -655,7 +778,7 @@ export default function Home() {
               <p style={styles.emptyText}>
                 {people.length === 0 
                   ? 'Get started by adding your first person!' 
-                  : 'No results match your search.'}
+                  : 'No results match your filters.'}
               </p>
               {people.length === 0 && (
                 <button 
@@ -663,13 +786,13 @@ export default function Home() {
                   onClick={openAddModal}
                   onMouseEnter={(e) => {
                     e.currentTarget.style.background = '#3a5cd5'
-                    e.currentTarget.style.transform = 'translateY(-1px)'
-                    e.currentTarget.style.boxShadow = '0 4px 12px rgba(74, 108, 247, 0.3)'
+                    e.currentTarget.style.transform = 'translateY(-3px)'
+                    e.currentTarget.style.boxShadow = '0 8px 20px rgba(74, 108, 247, 0.35)'
                   }}
                   onMouseLeave={(e) => {
                     e.currentTarget.style.background = '#4a6cf7'
                     e.currentTarget.style.transform = 'translateY(0)'
-                    e.currentTarget.style.boxShadow = 'none'
+                    e.currentTarget.style.boxShadow = '0 4px 12px rgba(74, 108, 247, 0.25)'
                   }}
                 >
                   + Add Person
@@ -690,7 +813,15 @@ export default function Home() {
                 </thead>
                 <tbody>
                   {filteredPeople.map((person) => (
-                    <tr key={person.id}>
+                    <tr 
+                      key={person.id}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background = '#f8f9fc'
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = 'transparent'
+                      }}
+                    >
                       <td style={styles.td}>
                         <span style={styles.nameCell}>{person.name}</span>
                       </td>
@@ -705,16 +836,32 @@ export default function Home() {
                         <button 
                           style={styles.editButton}
                           onClick={() => openEditModal(person)}
-                          onMouseEnter={(e) => e.currentTarget.style.background = '#3a5cd5'}
-                          onMouseLeave={(e) => e.currentTarget.style.background = '#4a6cf7'}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.background = '#3a5cd5'
+                            e.currentTarget.style.transform = 'translateY(-2px)'
+                            e.currentTarget.style.boxShadow = '0 6px 14px rgba(74, 108, 247, 0.3)'
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.background = '#4a6cf7'
+                            e.currentTarget.style.transform = 'translateY(0)'
+                            e.currentTarget.style.boxShadow = '0 2px 6px rgba(74, 108, 247, 0.15)'
+                          }}
                         >
                           Edit
                         </button>
                         <button 
                           style={styles.deleteButton}
                           onClick={() => deletePerson(person.id)}
-                          onMouseEnter={(e) => e.currentTarget.style.background = '#c82333'}
-                          onMouseLeave={(e) => e.currentTarget.style.background = '#dc3545'}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.background = '#c82333'
+                            e.currentTarget.style.transform = 'translateY(-2px)'
+                            e.currentTarget.style.boxShadow = '0 6px 14px rgba(220, 53, 69, 0.3)'
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.background = '#dc3545'
+                            e.currentTarget.style.transform = 'translateY(0)'
+                            e.currentTarget.style.boxShadow = '0 2px 6px rgba(220, 53, 69, 0.15)'
+                          }}
                         >
                           Delete
                         </button>
@@ -737,8 +884,8 @@ export default function Home() {
               <button 
                 style={styles.modalClose}
                 onClick={closeModal}
-                onMouseEnter={(e) => e.currentTarget.style.color = '#fff'}
-                onMouseLeave={(e) => e.currentTarget.style.color = '#666'}
+                onMouseEnter={(e) => e.currentTarget.style.color = '#1a1a2e'}
+                onMouseLeave={(e) => e.currentTarget.style.color = '#adb5bd'}
               >
                 ✕
               </button>
@@ -754,8 +901,14 @@ export default function Home() {
                   required
                   placeholder="Enter full name"
                   style={styles.formInput}
-                  onFocus={(e) => e.target.style.borderColor = '#4a6cf7'}
-                  onBlur={(e) => e.target.style.borderColor = '#333'}
+                  onFocus={(e) => {
+                    e.target.style.borderColor = '#4a6cf7'
+                    e.target.style.boxShadow = '0 0 0 4px rgba(74, 108, 247, 0.1)'
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.borderColor = '#e9ecef'
+                    e.target.style.boxShadow = 'none'
+                  }}
                 />
               </div>
               <div style={styles.formGroup}>
@@ -767,8 +920,14 @@ export default function Home() {
                   onChange={handleInputChange}
                   placeholder="Enter department"
                   style={styles.formInput}
-                  onFocus={(e) => e.target.style.borderColor = '#4a6cf7'}
-                  onBlur={(e) => e.target.style.borderColor = '#333'}
+                  onFocus={(e) => {
+                    e.target.style.borderColor = '#4a6cf7'
+                    e.target.style.boxShadow = '0 0 0 4px rgba(74, 108, 247, 0.1)'
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.borderColor = '#e9ecef'
+                    e.target.style.boxShadow = 'none'
+                  }}
                 />
               </div>
               <div style={styles.formRow}>
@@ -782,8 +941,14 @@ export default function Home() {
                     required
                     placeholder="e.g., January"
                     style={styles.formInput}
-                    onFocus={(e) => e.target.style.borderColor = '#4a6cf7'}
-                    onBlur={(e) => e.target.style.borderColor = '#333'}
+                    onFocus={(e) => {
+                      e.target.style.borderColor = '#4a6cf7'
+                      e.target.style.boxShadow = '0 0 0 4px rgba(74, 108, 247, 0.1)'
+                    }}
+                    onBlur={(e) => {
+                      e.target.style.borderColor = '#e9ecef'
+                      e.target.style.boxShadow = 'none'
+                    }}
                   />
                 </div>
                 <div style={styles.formGroup}>
@@ -798,8 +963,14 @@ export default function Home() {
                     max="31"
                     placeholder="Day"
                     style={styles.formInput}
-                    onFocus={(e) => e.target.style.borderColor = '#4a6cf7'}
-                    onBlur={(e) => e.target.style.borderColor = '#333'}
+                    onFocus={(e) => {
+                      e.target.style.borderColor = '#4a6cf7'
+                      e.target.style.boxShadow = '0 0 0 4px rgba(74, 108, 247, 0.1)'
+                    }}
+                    onBlur={(e) => {
+                      e.target.style.borderColor = '#e9ecef'
+                      e.target.style.boxShadow = 'none'
+                    }}
                   />
                 </div>
               </div>
@@ -812,8 +983,14 @@ export default function Home() {
                   onChange={handleInputChange}
                   placeholder="Enter phone number"
                   style={styles.formInput}
-                  onFocus={(e) => e.target.style.borderColor = '#4a6cf7'}
-                  onBlur={(e) => e.target.style.borderColor = '#333'}
+                  onFocus={(e) => {
+                    e.target.style.borderColor = '#4a6cf7'
+                    e.target.style.boxShadow = '0 0 0 4px rgba(74, 108, 247, 0.1)'
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.borderColor = '#e9ecef'
+                    e.target.style.boxShadow = 'none'
+                  }}
                 />
               </div>
               <div style={styles.formActions}>
@@ -821,8 +998,14 @@ export default function Home() {
                   type="button" 
                   style={styles.cancelButton}
                   onClick={closeModal}
-                  onMouseEnter={(e) => e.currentTarget.style.background = '#444'}
-                  onMouseLeave={(e) => e.currentTarget.style.background = '#333'}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = '#e9ecef'
+                    e.currentTarget.style.transform = 'translateY(-2px)'
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = '#f1f3f5'
+                    e.currentTarget.style.transform = 'translateY(0)'
+                  }}
                 >
                   Cancel
                 </button>
@@ -831,11 +1014,13 @@ export default function Home() {
                   style={styles.saveButton}
                   onMouseEnter={(e) => {
                     e.currentTarget.style.background = '#3a5cd5'
-                    e.currentTarget.style.transform = 'translateY(-1px)'
+                    e.currentTarget.style.transform = 'translateY(-2px)'
+                    e.currentTarget.style.boxShadow = '0 6px 16px rgba(74, 108, 247, 0.35)'
                   }}
                   onMouseLeave={(e) => {
                     e.currentTarget.style.background = '#4a6cf7'
                     e.currentTarget.style.transform = 'translateY(0)'
+                    e.currentTarget.style.boxShadow = '0 4px 12px rgba(74, 108, 247, 0.25)'
                   }}
                 >
                   {editingId ? 'Update' : 'Save'}
@@ -853,15 +1038,39 @@ export default function Home() {
         @keyframes fadeIn {
           from {
             opacity: 0;
-            transform: translateY(-20px);
+            transform: translateY(-16px) scale(0.96);
           }
           to {
             opacity: 1;
-            transform: translateY(0);
+            transform: translateY(0) scale(1);
           }
         }
-        .loginBox {
-          animation: fadeIn 0.5s ease;
+        /* Global hover effects for table rows and other elements */
+        .table-row:hover {
+          background: #f8f9fc;
+        }
+        .stat-card:hover {
+          transform: translateY(-4px);
+          box-shadow: 0 12px 28px rgba(0, 0, 0, 0.08);
+          border-color: #4a6cf7;
+        }
+        button {
+          cursor: pointer;
+        }
+        /* Scrollbar styling (optional) */
+        ::-webkit-scrollbar {
+          width: 6px;
+          height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+          background: #f1f3f5;
+        }
+        ::-webkit-scrollbar-thumb {
+          background: #ced4da;
+          border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+          background: #adb5bd;
         }
       `}</style>
     </div>
