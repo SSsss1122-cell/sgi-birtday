@@ -20,6 +20,27 @@ const MONTHS = [
   { value: 12, label: 'December' }
 ]
 
+// Helper to parse month name and day from a date string (YYYY-MM-DD)
+function parseBirthdayDate(dateStr: string | null): { month: string; day: number } | null {
+  if (!dateStr) return null
+  const parts = dateStr.split('-')
+  if (parts.length !== 3) return null
+  const monthNum = parseInt(parts[1], 10)
+  const day = parseInt(parts[2], 10)
+  if (isNaN(monthNum) || isNaN(day)) return null
+  const monthName = MONTHS.find(m => m.value === monthNum)?.label || ''
+  return { month: monthName, day }
+}
+
+// Helper to get month number from a date string
+function getMonthNumFromDate(dateStr: string | null): number | null {
+  if (!dateStr) return null
+  const parts = dateStr.split('-')
+  if (parts.length !== 3) return null
+  const monthNum = parseInt(parts[1], 10)
+  return isNaN(monthNum) ? null : monthNum
+}
+
 export default function Home() {
   const [people, setPeople] = useState<Person[]>([])
   const [filteredPeople, setFilteredPeople] = useState<Person[]>([])
@@ -30,11 +51,15 @@ export default function Home() {
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false)
   const [editingId, setEditingId] = useState<number | null>(null)
   const [admin, setAdmin] = useState<any>(null)
-  const [formData, setFormData] = useState<PersonFormData>({
+  const [formData, setFormData] = useState<{
+    name: string
+    department: string
+    birthday_date: string  // YYYY-MM-DD with year 2000
+    phone_number: string
+  }>({
     name: '',
     department: '',
-    dob_month: '',
-    dob_day: '',
+    birthday_date: '',
     phone_number: ''
   })
   const router = useRouter()
@@ -89,7 +114,10 @@ export default function Home() {
     }
 
     if (monthFilter !== 'all') {
-      filtered = filtered.filter(person => person.dob_month_num === monthFilter)
+      filtered = filtered.filter(person => {
+        const m = getMonthNumFromDate(person.birthday_date)
+        return m === monthFilter
+      })
     }
 
     setFilteredPeople(filtered)
@@ -98,24 +126,6 @@ export default function Home() {
   function showMessage(text: string, type: 'success' | 'error'): void {
     setMessage({ text, type })
     setTimeout(() => setMessage(null), 5000)
-  }
-
-  function getMonthNumber(monthName: string): number {
-    const months: Record<string, number> = {
-      'january': 1, 'jan': 1,
-      'february': 2, 'feb': 2,
-      'march': 3, 'mar': 3,
-      'april': 4, 'apr': 4,
-      'may': 5,
-      'june': 6, 'jun': 6,
-      'july': 7, 'jul': 7,
-      'august': 8, 'aug': 8,
-      'september': 9, 'sep': 9,
-      'october': 10, 'oct': 10,
-      'november': 11, 'nov': 11,
-      'december': 12, 'dec': 12
-    }
-    return months[monthName.toLowerCase().trim()] || 0
   }
 
   function handleLogout() {
@@ -128,8 +138,7 @@ export default function Home() {
     setFormData({
       name: '',
       department: '',
-      dob_month: '',
-      dob_day: '',
+      birthday_date: '',
       phone_number: ''
     })
     setIsModalOpen(true)
@@ -140,8 +149,7 @@ export default function Home() {
     setFormData({
       name: person.name,
       department: person.department || '',
-      dob_month: person.dob_month,
-      dob_day: person.dob_day?.toString() || '',
+      birthday_date: person.birthday_date || '',
       phone_number: person.phone_number || ''
     })
     setIsModalOpen(true)
@@ -162,32 +170,37 @@ export default function Home() {
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>): Promise<void> {
     e.preventDefault()
     
-    const { name, department, dob_month, dob_day, phone_number } = formData
-    const dobDayNum = parseInt(dob_day)
-    const dobMonthNum = getMonthNumber(dob_month)
+    const { name, department, birthday_date, phone_number } = formData
 
-    if (!name || !dob_month || !dob_day) {
-      showMessage('Please fill in all required fields', 'error')
+    if (!name || !birthday_date) {
+      showMessage('Please fill in all required fields (name and birthday)', 'error')
       return
     }
 
-    if (isNaN(dobDayNum) || dobDayNum < 1 || dobDayNum > 31) {
-      showMessage('Please enter a valid day (1-31)', 'error')
+    // Force the year to 2000 – we extract month and day and rebuild
+    const dateParts = birthday_date.split('-')
+    if (dateParts.length !== 3) {
+      showMessage('Invalid date format. Please pick a valid date.', 'error')
+      return
+    }
+    const year = parseInt(dateParts[0], 10)
+    const monthNum = parseInt(dateParts[1], 10)
+    const dayNum = parseInt(dateParts[2], 10)
+    if (isNaN(monthNum) || isNaN(dayNum) || monthNum < 1 || monthNum > 12 || dayNum < 1 || dayNum > 31) {
+      showMessage('Please select a valid date.', 'error')
       return
     }
 
-    if (dobMonthNum === 0) {
-      showMessage('Please enter a valid month name', 'error')
-      return
-    }
+    // Rebuild with year 2000
+    const paddedMonth = String(monthNum).padStart(2, '0')
+    const paddedDay = String(dayNum).padStart(2, '0')
+    const finalDate = `2000-${paddedMonth}-${paddedDay}`
 
     const data = {
       name: name.trim(),
       department: department.trim() || null,
-      dob_month: dob_month.trim(),
-      dob_day: dobDayNum,
       phone_number: phone_number.trim() || null,
-      dob_month_num: dobMonthNum
+      birthday_date: finalDate
     }
 
     try {
@@ -229,7 +242,7 @@ export default function Home() {
     }
   }
 
-  // ---------- WHITE THEME STYLES ----------
+  // ---------- FULL STYLES ----------
   const styles = {
     container: {
       maxWidth: '1200px',
@@ -612,9 +625,6 @@ export default function Home() {
     },
   }
 
-  // ----- HOVER / FOCUS STYLES (applied via inline events and global CSS) -----
-  // We'll add a <style> block at the end for additional hover effects
-
   if (!admin) {
     return (
       <div style={styles.loading}>
@@ -666,12 +676,15 @@ export default function Home() {
         {[
           { label: 'Total People', value: people.length },
           { label: 'Upcoming Birthdays', value: people.filter(p => {
+            const date = p.birthday_date
+            if (!date) return false
             const today = new Date()
             const currentMonth = today.getMonth() + 1
             const currentDay = today.getDate()
-            return p.dob_month_num && p.dob_day && 
-                   (p.dob_month_num > currentMonth || 
-                    (p.dob_month_num === currentMonth && p.dob_day >= currentDay))
+            const m = getMonthNumFromDate(date)
+            const day = parseInt(date.split('-')[2], 10)
+            if (m === null || isNaN(day)) return false
+            return (m > currentMonth || (m === currentMonth && day >= currentDay))
           }).length },
           { label: 'With Department', value: people.filter(p => p.department).length }
         ].map((stat, idx) => (
@@ -812,62 +825,65 @@ export default function Home() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredPeople.map((person) => (
-                    <tr 
-                      key={person.id}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.background = '#f8f9fc'
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.background = 'transparent'
-                      }}
-                    >
-                      <td style={styles.td}>
-                        <span style={styles.nameCell}>{person.name}</span>
-                      </td>
-                      <td style={styles.td}>{person.department || '-'}</td>
-                      <td style={styles.td}>
-                        <span style={styles.birthdayBadge}>
-                          {person.dob_month} {person.dob_day}
-                        </span>
-                      </td>
-                      <td style={styles.td}>{person.phone_number || '-'}</td>
-                      <td style={{...styles.td, textAlign: 'center'}}>
-                        <button 
-                          style={styles.editButton}
-                          onClick={() => openEditModal(person)}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.background = '#3a5cd5'
-                            e.currentTarget.style.transform = 'translateY(-2px)'
-                            e.currentTarget.style.boxShadow = '0 6px 14px rgba(74, 108, 247, 0.3)'
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.background = '#4a6cf7'
-                            e.currentTarget.style.transform = 'translateY(0)'
-                            e.currentTarget.style.boxShadow = '0 2px 6px rgba(74, 108, 247, 0.15)'
-                          }}
-                        >
-                          Edit
-                        </button>
-                        <button 
-                          style={styles.deleteButton}
-                          onClick={() => deletePerson(person.id)}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.background = '#c82333'
-                            e.currentTarget.style.transform = 'translateY(-2px)'
-                            e.currentTarget.style.boxShadow = '0 6px 14px rgba(220, 53, 69, 0.3)'
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.background = '#dc3545'
-                            e.currentTarget.style.transform = 'translateY(0)'
-                            e.currentTarget.style.boxShadow = '0 2px 6px rgba(220, 53, 69, 0.15)'
-                          }}
-                        >
-                          Delete
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
+                  {filteredPeople.map((person) => {
+                    const parsed = parseBirthdayDate(person.birthday_date)
+                    return (
+                      <tr 
+                        key={person.id}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.background = '#f8f9fc'
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.background = 'transparent'
+                        }}
+                      >
+                        <td style={styles.td}>
+                          <span style={styles.nameCell}>{person.name}</span>
+                        </td>
+                        <td style={styles.td}>{person.department || '-'}</td>
+                        <td style={styles.td}>
+                          <span style={styles.birthdayBadge}>
+                            {parsed ? `${parsed.month} ${parsed.day}` : '-'}
+                          </span>
+                        </td>
+                        <td style={styles.td}>{person.phone_number || '-'}</td>
+                        <td style={{...styles.td, textAlign: 'center'}}>
+                          <button 
+                            style={styles.editButton}
+                            onClick={() => openEditModal(person)}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.background = '#3a5cd5'
+                              e.currentTarget.style.transform = 'translateY(-2px)'
+                              e.currentTarget.style.boxShadow = '0 6px 14px rgba(74, 108, 247, 0.3)'
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.background = '#4a6cf7'
+                              e.currentTarget.style.transform = 'translateY(0)'
+                              e.currentTarget.style.boxShadow = '0 2px 6px rgba(74, 108, 247, 0.15)'
+                            }}
+                          >
+                            Edit
+                          </button>
+                          <button 
+                            style={styles.deleteButton}
+                            onClick={() => deletePerson(person.id)}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.background = '#c82333'
+                              e.currentTarget.style.transform = 'translateY(-2px)'
+                              e.currentTarget.style.boxShadow = '0 6px 14px rgba(220, 53, 69, 0.3)'
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.background = '#dc3545'
+                              e.currentTarget.style.transform = 'translateY(0)'
+                              e.currentTarget.style.boxShadow = '0 2px 6px rgba(220, 53, 69, 0.15)'
+                            }}
+                          >
+                            Delete
+                          </button>
+                        </td>
+                      </tr>
+                    )
+                  })}
                 </tbody>
               </table>
             </div>
@@ -875,7 +891,7 @@ export default function Home() {
         </>
       )}
 
-      {/* Modal */}
+      {/* Modal with Date Picker */}
       {isModalOpen && (
         <div style={styles.modalOverlay} onClick={closeModal}>
           <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
@@ -930,49 +946,27 @@ export default function Home() {
                   }}
                 />
               </div>
-              <div style={styles.formRow}>
-                <div style={styles.formGroup}>
-                  <label style={styles.formLabel}>Birth Month *</label>
-                  <input
-                    type="text"
-                    name="dob_month"
-                    value={formData.dob_month}
-                    onChange={handleInputChange}
-                    required
-                    placeholder="e.g., January"
-                    style={styles.formInput}
-                    onFocus={(e) => {
-                      e.target.style.borderColor = '#4a6cf7'
-                      e.target.style.boxShadow = '0 0 0 4px rgba(74, 108, 247, 0.1)'
-                    }}
-                    onBlur={(e) => {
-                      e.target.style.borderColor = '#e9ecef'
-                      e.target.style.boxShadow = 'none'
-                    }}
-                  />
-                </div>
-                <div style={styles.formGroup}>
-                  <label style={styles.formLabel}>Birth Day *</label>
-                  <input
-                    type="number"
-                    name="dob_day"
-                    value={formData.dob_day}
-                    onChange={handleInputChange}
-                    required
-                    min="1"
-                    max="31"
-                    placeholder="Day"
-                    style={styles.formInput}
-                    onFocus={(e) => {
-                      e.target.style.borderColor = '#4a6cf7'
-                      e.target.style.boxShadow = '0 0 0 4px rgba(74, 108, 247, 0.1)'
-                    }}
-                    onBlur={(e) => {
-                      e.target.style.borderColor = '#e9ecef'
-                      e.target.style.boxShadow = 'none'
-                    }}
-                  />
-                </div>
+              <div style={styles.formGroup}>
+                <label style={styles.formLabel}>Birthday *</label>
+                <input
+                  type="date"
+                  name="birthday_date"
+                  value={formData.birthday_date}
+                  onChange={handleInputChange}
+                  required
+                  style={styles.formInput}
+                  onFocus={(e) => {
+                    e.target.style.borderColor = '#4a6cf7'
+                    e.target.style.boxShadow = '0 0 0 4px rgba(74, 108, 247, 0.1)'
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.borderColor = '#e9ecef'
+                    e.target.style.boxShadow = 'none'
+                  }}
+                />
+                <p style={{ fontSize: '12px', color: '#6c757d', marginTop: '4px' }}>
+                  Pick any date – the year will be stored as 2000.
+                </p>
               </div>
               <div style={styles.formGroup}>
                 <label style={styles.formLabel}>Phone Number</label>
@@ -1045,10 +1039,7 @@ export default function Home() {
             transform: translateY(0) scale(1);
           }
         }
-        /* Global hover effects for table rows and other elements */
-        .table-row:hover {
-          background: #f8f9fc;
-        }
+        /* Additional hover effects */
         .stat-card:hover {
           transform: translateY(-4px);
           box-shadow: 0 12px 28px rgba(0, 0, 0, 0.08);
@@ -1057,7 +1048,6 @@ export default function Home() {
         button {
           cursor: pointer;
         }
-        /* Scrollbar styling (optional) */
         ::-webkit-scrollbar {
           width: 6px;
           height: 6px;
